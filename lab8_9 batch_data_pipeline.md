@@ -47,7 +47,7 @@ date_format = "%d/%m/%Y %H:%M:%S"
     `$ mkdir -p ./dags ./logs ./plugins ./config`
 6. Prepare the environment.
 
-    `echo -e "AIRFLOW_UID=$(id -u) \nAIRFLOW_PROJ_DIR=/Users/personal_projects/projects/ee3801/dev_airflow" > .env`
+    `echo -e "AIRFLOW_UID=$(id -u) \nAIRFLOW_PROJ_DIR=/Users/<username>/projects/ee3801/dev_airflow" > .env`
 7. Build the docker.
 
     `$ docker compose up airflow-init`
@@ -107,7 +107,7 @@ date_format = "%d/%m/%Y %H:%M:%S"
 
 1. Open command line or terminal. Go to directory.
 
-    `cd /Users/personal_projects/projects/ee3801/elasticsearch`
+    `cd /Users/<username>/projects/ee3801/elasticsearch`
 2. Create docker network.
 
     `docker network create elastic`
@@ -123,18 +123,18 @@ date_format = "%d/%m/%Y %H:%M:%S"
 ![No description has been provided for this image](image/week8_image12.png)
 7. Download http\_ca\_crt and test the access using curl.
 
-    `cd /Users/personal_projects/projects/ee3801/elasticsearch/`
+    `cd /Users/<username>/projects/ee3801/elasticsearch/`
 
     `docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .`
 
     `curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200`
 8. Create a data directory for kibana.
 
-    `cd /Users/personal_projects/projects/ee3801/kibana`
+    `cd /Users/<username>/projects/ee3801/kibana`
  `mkdir data`
 9. Download docker image and run the docker container for kibana. `Ctrl-C` at terminal and start the dev\_kib01 service in docker dashboard.
 
-    `docker run --name dev_kib01 --net elastic -v /Users/personal_projects/projects/ee3801/kibana/data:/usr/share/kibana/data -p 5601:5601 docker.elastic.co/kibana/kibana:8.14.1`
+    `docker run --name dev_kib01 --net elastic -v /Users/<username>/projects/ee3801/kibana/data:/usr/share/kibana/data -p 5601:5601 docker.elastic.co/kibana/kibana:8.14.1`
 
 ![No description has been provided for this image](image/week8_image13.png)
 ![No description has been provided for this image](image/week8_image15.png)
