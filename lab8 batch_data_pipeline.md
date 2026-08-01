@@ -1,14 +1,13 @@
 # Lab 8 Batch Data Pipeline
 
-- Installing Softwares
+- Install required software
 - Scenario: Carpark system \
-    Generate, process and save the data every 5 mins for reporting.
+  Generate, process, and save data every 5 minutes for reporting.
 
-Create a new jupyter notebook file "batch_data_pipeline.ipynb".
-
+Create a new Jupyter notebook file named `batch_data_pipeline.ipynb`.
 
 ```python
-# import libraries
+# Import Libraries
 
 from faker import Faker
 import json
@@ -20,307 +19,468 @@ import matplotlib.pyplot as plt
 date_format = "%d/%m/%Y %H:%M:%S"
 ```
 
-# 1. Installing Softwares or Import softwares
+# 1. Installing software or importing software
 
-You can follow the instructions 
+Follow one of these options:
 
-- (section 1.0) to import all the softwares from the Amazon Machine Images (AMIs) into your EC2 instance
-OR
-- (optional: section 1.1 to 1.4) to install the softwares for lab8 
+- Section 1.0: import all required software from an Amazon Machine Image (AMI) into your EC2 instance.
+- Optional Sections 1.1 to 1.4: install the software manually for Lab 8.
 
-Do ensure your region is set to "ap-southeast-1" and send your AWS account ID to gmscher@nus.edu.sg for access.
+Ensure your AWS region is set to `ap-southeast-1`, and send your AWS account ID to the instructor for access.
 
-# 1.0 Import Amazon Machine Images (AMIs) into your EC2 instance.
+# 1.0 Import Amazon Machine Images (AMIs) into your EC2 instance
 
-1. In AWS Console, go to EC2 > Launch Instance. 
+1. In the AWS Console, go to EC2 > Launch Instance.
 
-    Name and tags: ```ee3801_part2_lab8```
+    Name and tags: `ee3801_part2_lab8`
 
-    Application and OS Images (AMI): Select MyAMIs > Shared with me > ee3801_part2_lab8_ami
+    Application and OS Images (AMI): Select MyAMIs > Shared with me > `ee3801_part2_lab8_ami`
 
-    Instance type: ```t2.xlarge```
+    Instance type: `t2.xlarge`
 
-    Key pair: ```MyKeyPair```
+    Key pair: `MyKeyPair`
 
-    Network settings: Create security group\
-        select ```Allow SSH traffic from Anywhere 0.0.0.0/0```\
-        select ```Allow HTTPS traffic from the internet```\
-        select ```Allow HTTP traffic from the internet```
+    Network settings: Create a security group with these rules:\
+        - Allow SSH traffic from Anywhere: `0.0.0.0/0`\
+        - Allow HTTPS traffic from the internet\
+        - Allow HTTP traffic from the internet
 
-    Configure storage: 1x ```60``` GiB ```gp2```
+    Configure storage: 1x `60` GiB `gp3`
 
-    ```Launch instance```
+    `Launch instance`
+
+2. In the AWS Console, open EC2 > Instances > Security > Security groups url e.g. sg-xxxxxx > Edit inbound rules and add the following rules:
+
+    - Type: SSH, Port range: 22, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 5601, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 8080, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 5432, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 29092, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 39092, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 49092, Source: Custom, `0.0.0.0/0`
+    - Type: Custom TCP, Port range: 9200, Source: Custom, `0.0.0.0/0`
+    - Type: HTTPS, Port range: 443, Source: Custom, My IP
+    - Type: HTTPS, Port range: 80, Source: Custom, My IP
+
+3. Verify your installation and ensure you can access Apache Airflow, PostgreSQL, pgAdmin, Elasticsearch, and Kibana.
+
+    - On the EC3 instance, start docker and verify your installation. 
+        ```bash
+        # start a terminal and navigate to project directory
+        cd ~/Documents/projects/ee3801
+        # ssh into EC2 instance
+        ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
+        # start docker service
+        sudo service docker start
+        # list all the containers
+        docker ps -a
+
+        ```
+    - Verify if airflow is accessible. In a browser, open Airflow at http://<ip_address>:8080.
+
+        Login user: airflow
+        Password: *******
+
+        Note: If you cannot access Airflow, verify the EC2 public IP address.
+
+    - Verify if pgadmin4 is accessible. On the EC2 instance, start pgadmin4. In a browser, go to http://<ip_address>. Navigate to Carpark table that is already created for you.
+
+        Open properties of server and paste the correct <ip_address> of your EC2 instance:
+
+        - Name: `dev_airflow-postgres-1`
+        - Host: `<ip_address>`
+        - Database: `postgres`
+        - Username: `airflow`
+        - Password: `*******`
+
+        <img src="image/week8_image6.png" width="50%">
+        <img src="image/week8_image7.png" width="50%">
+
+        In pgAdmin, view the `CarPark` table.
+
+        Database > carpark_system > Schemas > public > Tables > CarPark.
+
+        - General > Name: `CarPark`
+        - Columns:
+            - Plate, text
+            - LocationID, text
+            - Entry_DateTime, timestamp without time zone
+            - Exit_DateTime, timestamp without time zone
+            - Parking_Charges, numeric
+
+        Note: If the connection fails, verify the EC2 public IP address and port 80 and 443 MyIP is chosen.
+
+        <img src="image/week8_image9.png" width="50%">
+        <img src="image/week8_image10.png" width="50%">
+        <img src="image/week8_image11.png" width="20%">
+
+    - Verify if elasticsearch and kibana is accessible.
+
+        - On the EC2 instance, start the Elasticsearch container `dev_es01`
+            ```bash
+            docker stop $(docker ps -q)
+            # start elasticsearch
+            docker start dev_es01
+            ```
+        - On the EC2 instance, copy the CA certificate and test the connection using curl. Replace `<elastic_password>` with the password you copied in step 5.
+
+            ```bash
+            cd ~/elasticsearch
+
+            docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
+            # test the connection
+            curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200
+            ```
+
+            <img src="image/week8_image12.png" width="50%">
+
+        - On the EC2 instance, run the Kibana container.
+
+            ```bash
+            docker start dev_kib01
+            ```
+
+        - In a browser, go to `https://<ip_address>:5601/?code=xxxxxx`.
+
+            Copy the emrollment token and paste it into Kibana in your browser.
+            Log in with username `elastic` and the password you saved earlier.
+
+            <img src="image/week8_image14.png" width="50%">
 
 
-2. Open AWS Console > EC2 Instance > Security > Click on Security groups > Edit inbound rules > Add rules
+# 1.1 Install Docker and configure AWS EC2 (optional)
 
-    Type: SSH, Port range: 22, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 5601, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 8080, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 5432, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 29092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 39092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 49092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 9200, Source: Custom, 0.0.0.0/0\
-    Type: HTTPS, Port range: 443, Source: Custom, My IP
+1. On your local machine, create an AWS EC2 instance with 60 GiB storage and 16 GB RAM.
 
-3. Now you can skip to section 2.
-   
-4. Test your installation and ensure you can access Apache Airflow, PostgreSQL, PGAdmin, Elasticsearch and Kibana.
-
-
-# 1.1 Install docker and configure AWS EC2 (optional)
-
-1. Open a command line or terminal, create AWS EC2 instance with 60GB storage space and 16 GB RAM. 
-
+    ```bash
+    aws ec2 run-instances --image-id resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --instance-type t2.xlarge --key-name MyKeyPair --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":60,"VolumeType":"gp3"}}]' --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ee3801_part2_lab8}]'
     ```
-    $ aws ec2 run-instances --image-id resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --instance-type t2.xlarge --key-name MyKeyPair --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":60,"VolumeType":"gp2"}}]' --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ee3801_part2_lab8}]'
+
+    If you receive the error `You must specify a region`, run `aws configure` or add `--region ap-southeast-1`.
+
+2. In the AWS Console, open EC2 > Instances > Security > Security groups url e.g. sg-xxxxxx > Edit inbound rules and add the rules shown in section 1.0, step 2.
+
+3. On your local machine, change to your project directory.
+
+    ```bash
+    cd ~/Documents/projects/ee3801
     ```
 
-    If you have the error "You must specify a region. You can also configure your region by running "aws configure", go to lab 1 > Part 2 > Step 4 and install AWS CLI. https://github.com/EE3801/Lab1/blob/main/src/part-a/1.md 
+4. SSH into the EC2 instance. Replace `<ip_address>` with the instance public IP.
 
-2. Open AWS Console > EC2 Instance > Security > Click on Security groups > Edit inbound rules > Add rules
+    ```bash
+    ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
+    ```
 
-    Type: SSH, Port range: 22, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 5601, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 8080, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 5432, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 29092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 39092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 49092, Source: Custom, 0.0.0.0/0\
-    Type: Custom TCP, Port range: 9200, Source: Custom, 0.0.0.0/0\
-    Type: HTTPS, Port range: 443, Source: Custom, My IP
+5. On the EC2 instance, update packages.
 
-3. Open terminal or command line.
+    ```bash
+    sudo yum update -y
+    ```
 
-    ```$ cd ~/Documents/projects/ee3801```
+6. On the EC2 instance, install Docker.
 
-2. SSH into the instance that you just created. Copy the ```<ip_address>``` from the AWS EC2 instance you just created.
+    ```bash
+    sudo amazon-linux-extras install docker
+    ```
 
-    ```$ ssh -i "MyKeyPair.pem" ec2-user@<ip_address>```
+7. On the EC2 instance, start the Docker service.
 
-3. Update packages.
+    ```bash
+    sudo service docker start
+    ```
 
-    ```$ sudo yum update -y```
+8. On the EC2 instance, add the current user (for example, `ec2-user`) to the `docker` group so Docker commands can run without `sudo`.
 
-4. Install Docker
+    ```bash
+    sudo usermod -a -G docker ec2-user
+    ```
 
-    ```$ sudo amazon-linux-extras install docker```
+9. Log out and log back in, or restart the SSH session, for the group changes to take effect.
 
-5. Start Docker Service
+10. On the EC2 instance, verify Docker is installed and running.
 
-    ```$ sudo service docker start```
+    ```bash
+    sudo service docker start
+    docker ps -a
+    ```
 
-6. Configure User for Docker. Add the current user (e.g. ```ec2-user```) to the ```docker``` group to run Docker commands without ```sudo```.
+11. On the EC2 instance, download Docker Compose.
 
-    ```$ sudo usermod -a -G docker ec2-user```
+    ```bash
+    sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    ```
 
-7. Log out and log back in (or restart your SSH session) for the group changes to take effect.
+12. On the EC2 instance, make Docker Compose executable.
 
-8. Verify Installation. Run ```$ docker ps -a``` to verify that Docker is installed and running. You should see output indicating that no containers are currently running.
+    ```bash
+    sudo chmod +x /usr/local/bin/docker-compose
+    ```
 
-9. Download docker-compose.
+13. On the EC2 instance, verify the installation.
 
-    ```$ sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose```
+    ```bash
+    docker-compose --version
+    ```
 
-10. Make it executable.
+# 1.2 Install Airflow and PostgreSQL (optional)
 
-    ```$ sudo chmod +x /usr/local/bin/docker-compose```
+1. On your local machine, open a terminal and SSH into the EC2 instance.
 
-11. Verify.
+    ```bash
+    cd ~/Documents/projects/ee3801
 
-    ```$ docker-compose --version```
+    ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
+    ```
 
-# 1.2 Install Airflow and postgresql (optional)
+2. On the EC2 instance, create an Airflow folder and change into it.
 
-1. In the local machine command line or terminal, go to the working directory and SSH into server. 
+    ```bash
+    mkdir dev_airflow
 
-    ```$ cd ~/Documents/projects/ee3801```\
-    ```$ ssh -i "MyKeyPair.pem" ec2-user@<ip_address>```
+    cd dev_airflow
+    ```
 
-2. In your project folder, create a airflow folder.
+3. On the EC2 instance, download the Apache Airflow Docker Compose file.
 
-    ```$ mkdir dev_airflow``` \
-    ```$ cd dev_airflow```
+    ```bash
+    curl -LfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml'
+    ```
 
-3. Download Apache Airflow's docker installation procedure. 
-
-    ```curl -LfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml'```
-
-4. Edit docker-compose.yaml to add "ports: - "5432:5432"" for postgres.
+4. On the EC2 instance, edit `docker-compose.yaml` to expose PostgreSQL by adding `ports: - "5432:5432"` under the PostgreSQL service.
 
     <img src="image/week8_image1.png" width="50%">
     <img src="image/week8_image2.png" width="30%">
 
-5. Navigate into the airflow folder and create the folders for airflow.
+5. On the EC2 instance, create the required Airflow folders.
 
-    ```$ mkdir -p ./dags ./logs ./plugins ./config```
+    ```bash
+    mkdir -p ./dags ./logs ./plugins ./config
+    ```
 
-6. Prepare the environment.
+6. On the EC2 instance, create the environment file.
 
-    ```$ echo -e "AIRFLOW_UID=$(id -u) \nAIRFLOW_PROJ_DIR=~/dev_airflow" > .env```\
-    ```$ more .env```
+    ```bash
+    echo -e "AIRFLOW_UID=$(id -u) \nAIRFLOW_PROJ_DIR=~/dev_airflow" > .env
 
-7. Build the docker.
+    more .env
+    ```
 
-    ```$ docker-compose up airflow-init```\
-    ```$ docker-compose up```
+7. On the EC2 instance, initialize and start Airflow.
 
-8. ```Ctrl+C``` at the command line. Logout and log back in. Start the docker service (another way to start).
+    ```bash
+    docker-compose up airflow-init
 
-    ```$ sudo systemctl restart docker```
+    docker-compose up
+    ```
 
-    Note: Wait for dev_airflow-airflow-apiserver-1 to start up healthy status. 
+8. On the EC2 instance, press `Ctrl+C` to stop the foreground process, then log out and log back in or restart the SSH session and restart docker.
 
-9. In your browser, go to <a href="http://<ip_address>:8080">http://<ip_address>:8080</a>. Login user: airflow, password: *******. If you cannot access, modify the ip address to your ec2 instance ip address.
+    ```bash
+    sudo systemctl restart docker
+    ```
 
-10. In the command line enter ```docker ps -a```, you should be able to see the containers in dev_airflow running. You can also see that postgresql is installed.
+    Note: Wait until `dev_airflow-airflow-apiserver-1` is healthy.
+
+9. In a browser, open Airflow at <a href="http://<ip_address>:8080">http://<ip_address>:8080</a>.
+
+    Login user: `airflow`\
+    Password: `*******`
+
+    Note: If you cannot access Airflow, verify the EC2 public IP address.
+
+10. On the EC2 instance, verify Docker containers are running.
+
+    ```bash
+    docker ps -a
+    ```
+
+    You should see the Airflow containers and PostgreSQL.
 
     <img src="image/week8_image3.png" width="100%">
 
-11. Next we want to configure the postgresql. In the terminal, access the docker "dev_airflow-postgres-1" container and check the postgresql version. 
+11. On the EC2 instance, create data directory in dev_airflow-airflow-scheduler-1, access the PostgreSQL container and check the version.
 
-    ```$ docker exec -it dev_airflow-postgres-1 /bin/bash```\
-    ```$ postgres -V```
+    ```bash
+    docker exec -it dev_airflow-airflow-scheduler-1 /bin/bash
+    mkdir -p /opt/airflow/dags/data/
+    exit
 
-    <img src="image/week8_image3a.png" width="50%"> 
-    <br>
+    docker exec -it dev_airflow-postgres-1 /bin/bash
+    
+    postgres -V
+    ```
 
+    <img src="image/week8_image3a.png" width="50%">
 
-12. Access postgresql in terminal, create database ```carpark_system``` and list database. Type ```exit``` and ```exit``` to exit postgresql console and container.
+12. On the EC2 instance, create the `carpark_system` database.
 
-    ```psql -U airflow```\
-    \
-    ```CREATE DATABASE carpark_system;```\
-    \
-    ```\l```\
-    \
-    ```exit```\
-    \
-    ```exit```
+    ```bash
+    psql -U airflow
+
+    CREATE DATABASE carpark_system;
+
+    \l
+
+    exit
+    exit
+    ```
 
     <img src="image/week8_image4.png" width="50%">
 
+# 1.3 Install pgAdmin 4 (optional)
 
+1. On the EC2 instance, install pgAdmin 4 with Docker. Use your own email and password.
 
-
-
-
-
-
-
-
-
-
-
-
-
-# 1.3 Install pgadmin4 (optional)
-
-1. Install pgadmin4. For this lab your email: ee3801@nus.edu.sg and password: ******.
-
-    ```$ docker pull dpage/pgadmin4```
+    ```bash
+    cd ..
     
-    ```$ docker run --name dev_pgadmin4 -p 80:80 -e 'PGADMIN_DEFAULT_EMAIL=<youremail>' -e 'PGADMIN_DEFAULT_PASSWORD=<yourpassword>' -d dpage/pgadmin4:latest```
+    docker pull dpage/pgadmin4
+
+    docker run --name dev_pgadmin4 -p 80:80 -e 'PGADMIN_DEFAULT_EMAIL=<youremail>' -e 'PGADMIN_DEFAULT_PASSWORD=<yourpassword>' -d dpage/pgadmin4:latest
+    ```
 
     <img src="image/week8_image5.png" width="50%">
 
-2. In your browser, go to <a href="http://<ip_address>">http://<ip_address></a>. Click on Add New Server and configure the server.
+2. On your local machine, check if you have port 80 already used by any system. If port 80 is occupied, shutdown the service (on your local machine) before accessing the pgAdmin4 (on EC2 instance) through the local browser.
 
-    Name: dev_airflow-postgres-1 \
-    Host: <ip_address> \
-    Database: postgres \
-    Username: airflow \
-    Password: *******
+    ```bash
+    # On macOS or linux
+    sudo lsof -i tcp:80
+
+    # On Windows
+    netstat -ano | findstr :80
+    ```
+
+2. In a browser, go to <a href="http://<ip_address>">http://<ip_address></a>.
+
+    Click Add New Server and configure the connection:
+
+    - Name: `dev_airflow-postgres-1`
+    - Host: `<ip_address>`
+    - Database: `postgres`
+    - Username: `airflow`
+    - Password: `*******`
 
     <img src="image/week8_image6.png" width="50%">
     <img src="image/week8_image7.png" width="50%">
-    
 
-3. Create Table by right click on Database > carpark_system > Schemas > public > Tables. Save. If connection fail, modify the ip address to your current ec2 instance ip address.
+3. In pgAdmin, create the `CarPark` table.
 
-    General > Name: CarPark
-    Columns
-    - Plate, text
-    - LocationID, text
-    - Entry_DateTime, timestamp without time zone
-    - Exit_DateTime, timestamp without time zone
-    - Parking_Charges, numeric
+    Database > carpark_system > Schemas > public > Tables > Create a new table.
+
+    - General > Name: `CarPark`
+    - Columns:
+        - Plate, text
+        - LocationID, text
+        - Entry_DateTime, timestamp without time zone
+        - Exit_DateTime, timestamp without time zone
+        - Parking_Charges, numeric
+
+    Note: If the connection fails, verify the EC2 public IP address and port 80 and 443 MyIP is chosen.
 
     <img src="image/week8_image8.png" width="80%">
     <img src="image/week8_image9.png" width="50%">
     <img src="image/week8_image10.png" width="50%">
     <img src="image/week8_image11.png" width="20%">
 
+# 1.4 Install Elasticsearch and Kibana (optional)
 
-# 1.4 Install elasticsearch and kibana (optional)
+1. On the EC2 instance, create the `elasticsearch` directory and change into it.
 
-1. In the server, create directory ```elasticsearch``` and go to directory.
+    ```bash
+    docker stop $(docker ps -q)
 
-    ```$ mkdir ~/elasticsearch```\
-    ```$ cd ~/elasticsearch```
+    mkdir ~/elasticsearch
+    
+    cd ~/elasticsearch
+    ```
 
-2. Create docker network.
+2. On the EC2 instance, create a Docker network. This creates a new, isolated virtual network on your EC2 instance named elastic. By default, Docker containers cannot easily talk to each other using their container names. Creating a custom network solves this problem. We create this to let elasticsearch and kibana communicate securely.
 
-    ```$ docker network create elastic```
+    ```bash
+    docker network create elastic
+    ```
 
-3. Run the command to get the docker image.
+3. On the EC2 instance, pull the Elasticsearch Docker image.
 
-    ```$ docker pull docker.elastic.co/elasticsearch/elasticsearch:9.0.4```
+    ```bash
+    docker pull docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+    ```
 
-4. Run the docker container and name it dev_es01.
+4. On the EC2 instance, run the Elasticsearch container and name it `dev_es01`.
 
-    ```$ echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf```\
-    ```$ sudo systemctl restart docker```
-    ```sudo sysctl -w vm.max_map_count=262144```
-    ```$ docker run --name dev_es01 --net elastic -p 9200:9200 -it -m 1GB docker.elastic.co/elasticsearch/elasticsearch:9.0.4```
+    ```bash
+    echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+    
+    sudo systemctl restart docker
+    
+    sudo sysctl -w vm.max_map_count=262144
+    # stop all other services fist
+    docker stop $(docker ps -q)
+    # start elasticsearch 
+    docker run --name dev_es01 --net elastic -p 9200:9200 -it -m 1GB docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+    ```
 
-5. Take note of the password for elactic user, CA certificate and enrollment token for kibana generated. 
+5. Note the password for the `elastic` user, the CA certificate, and the Kibana enrollment token.
 
-6. ```Ctrl-C``` at terminal and start the dev_es01 service in docker dashboard.
+6. Stop the container with `Ctrl+C`, then start `dev_es01` again.
 
-    ```$ docker start dev_es01```
+    ```bash
+    docker start dev_es01
+    ```
 
-7. Download http_ca_crt and test the access using curl. Replace the <elastic_password> with the one you copied in step 5.
+7. On the EC2 instance, copy the CA certificate and test the connection using curl. Replace `<elastic_password>` with the password you copied in step 5.
 
-    ```$ cd ~/elasticsearch```
+    ```bash
+    cd ~/elasticsearch
 
-    ```$ docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .```\
-
-    ```$ curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200```
+    docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
+    # test the connection
+    curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200
+    ```
 
     <img src="image/week8_image12.png" width="50%">
 
-8. Create a data directory for kibana.
+8. On the EC2 instance, create a directory for Kibana data.
 
-    ```$ mkdir -p ~/kibana/data```\
-    ```$ cd ~/kibana```
-    
-9. Download docker image and run the docker container for kibana. ```Ctrl-C``` at terminal and start the dev_kib01 service in docker dashboard. 
+    ```bash
+    mkdir -p ~/kibana/data
+    cd ~/kibana
+    ```
 
-    ```$ docker run --name dev_kib01 --net elastic -v ~/kibana/data:/usr/share/kibana/data -p 5601:5601 docker.elastic.co/kibana/kibana:9.0.4```
+9. On the EC2 instance, run the Kibana container.
+
+    ```bash
+    docker run --name dev_kib01 --net elastic -v ~/kibana/data:/usr/share/kibana/data -p 5601:5601 docker.elastic.co/kibana/kibana:9.0.4
+    ```
 
     <img src="image/week8_image13.png" width="80%">
     <img src="image/week8_image15.png" width="80%">
 
-10. In the browser, go to ```https://<ip_address>:5601/?code=******```. Enter username elastic and its password. 
+10. In a browser, go to `https://<ip_address>:5601/?code=xxxxxx`.
 
+    Copy the emrollment token and paste it into Kibana in your browser.
+    Log in with username `elastic` and the password you saved earlier.
 
     <img src="image/week8_image14.png" width="50%">
-
-
-
+<br>
 
 # 2. Scenario: Carpark system (daily reporting)
 
-The organisation has a carpark system to monitor Cars entering and exiting carparks. The data that you are capturing is car plate number, time of entry, time of exit and the carpark. The rate of parking is 60 cents per half an hour. There are multiple stakeholders across the organisation accessing the data on-demand every 5 minutes to check on the status of the earnings through the parking system. Your company does not subscribe to Microsoft Power Platform. 
+The organisation monitors cars entering and exiting carparks. The data captured includes the car plate number, entry time, exit time, and carpark location. Parking is charged at 60 cents per half hour. Multiple stakeholders access the data on-demand every 5 minutes to review earnings.
 
-You are to prepare the data for the stakeholders to report carpark earnings on-demand every 5 minutes.
+Your company does not use Microsoft Power Platform.
 
-We move on to generate operations data, extract, process and load the data in local file sytem, relational database, NoSQL database and view the report through visualisations or dashboarding tools.
+You must prepare the data so stakeholders can report carpark earnings every 5 minutes.
 
-# 2.1 import libraries
+In this lab, you will generate operations data, then extract, transform, and load it into the local file system, a relational database, and a NoSQL database. Finally, you will view the data using visualization or dashboard tools.
 
+Note: The instructions provided below should be executed in the file named `batch_data_pipeline.ipynb`. Use Visual Studio Code to write and execute the file. Please refer to lab 7 section 2 to setup your Visual Studio Code python environment, if you have not already done so.
+
+# 2.1 Import libraries
+
+On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, install python packages for the lab. Copy and paste the codes into the cell and execute.
 
 ```python
 # install python packages
@@ -331,6 +491,7 @@ We move on to generate operations data, extract, process and load the data in lo
 !python -m pip install apache-airflow
 ```
 
+On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, import libraries, set working directory and date format. Copy and paste the codes into the cell and execute.
 
 ```python
 from faker import Faker
@@ -349,18 +510,19 @@ os.chdir(home_directory+'/Documents/projects/ee3801')
 date_format = "%d/%m/%Y %H:%M:%S"
 ```
 
-
+On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, create data directory to store your generated data. Copy and paste the codes into the cell and execute.
 ```python
 # create data directory
 !mkdir ./data
 ```
+<br>
 
 # 2.2 Prepare data
-Generate more simulated car entry and exit data and load into database
+On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, generate more simulated car entry and exit data and load into database. Copy and paste the codes into the cell and execute.
 
 
 ```python
-# Ensure you are in the correct working directory
+# Ensure you are in the correct working directory, `home_directory+'/Documents/projects/ee3801'`
 !pwd
 ```
 
@@ -369,6 +531,8 @@ Generate more simulated car entry and exit data and load into database
 # Read existing data 
 carpark_system_df = pd.read_csv("./data/carpark_system.csv", encoding="utf-8-sig")
 # carpark_system_df.drop(columns="Unnamed: 0", inplace=True)
+carpark_system_df["Entry_DateTime"] = carpark_system_df["Entry_DateTime"].astype("string")
+carpark_system_df["Exit_DateTime"] = carpark_system_df["Exit_DateTime"].astype("string")
 carpark_system_df.head()
 
 def generate_random_datetime_before_8pm(start_dt: datetime) -> datetime:
@@ -400,19 +564,20 @@ def generate_random_datetime_before_8pm(start_dt: datetime) -> datetime:
 # generate exit data and charging on previous dataset
 
 for index, item in carpark_system_df.iterrows():
-    
-    if str(item["Exit_DateTime"]) == "" or item["Exit_DateTime"]==None or str(item["Exit_DateTime"]) == "nan":
-        exit_datetime = generate_random_datetime_before_8pm(datetime.strptime(item['Entry_DateTime'],date_format))
+    if pd.isna(item["Exit_DateTime"]) or str(item["Exit_DateTime"]).strip() == "":
+        if pd.isna(item["Entry_DateTime"]) or str(item["Entry_DateTime"]).strip() == "":
+            continue
+        exit_datetime = generate_random_datetime_before_8pm(datetime.strptime(item['Entry_DateTime'], date_format))
+        # print(f"Entry: {item['Entry_DateTime']} | Exit: {exit_datetime.strftime(date_format)}")
         carpark_system_df.loc[index, "Exit_DateTime"] = exit_datetime.strftime(date_format)
 
-        charged = (exit_datetime - datetime.strptime(item['Entry_DateTime'], date_format)).seconds/60/60/2 * 60/100
+        charged = (exit_datetime - datetime.strptime(item['Entry_DateTime'], date_format)).seconds / 3600 * 0.5
         carpark_system_df.loc[index, "Parking_Charges"] = charged
-
 
 
 # generate new cars entry and exit
 
-fake=Faker()
+fake = Faker()
 
 # define the CarPark class
 class CarPark:
@@ -423,7 +588,7 @@ class CarPark:
         self.Exit_DateTime = Exit_DateTime
         self.Parking_Charges = Parking_Charges
 
-def generate_past_datetime_hours(now:datetime, hours:int) -> datetime:
+def generate_past_datetime_hours(now: datetime, hours: int) -> datetime:
 
     # Define the time range for the past 1 minutes
     end_date = now
@@ -470,13 +635,13 @@ def createCarEntry():
 # Generate more cars, append to list and save csv
 carpark_system = []
 for i in range(100):
-    thiscar_dict = eval(createCarEntry())
+    thiscar_dict = json.loads(createCarEntry())
     carpark_system.append(list(thiscar_dict.values()))
 
-new_carpark_system_df = pd.DataFrame(carpark_system, columns=list(eval(createCarEntry()).keys()))
-print("new_carpark_system_df:",len(new_carpark_system_df))
+new_carpark_system_df = pd.DataFrame(carpark_system, columns=list(json.loads(createCarEntry()).keys()))
+print("new_carpark_system_df:", len(new_carpark_system_df))
 # print(new_carpark_system_df.head())
-updated_carpark_system_df = pd.concat([carpark_system_df,new_carpark_system_df], axis=0)
+updated_carpark_system_df = pd.concat([carpark_system_df, new_carpark_system_df], axis=0)
 updated_carpark_system_df.to_csv('./data/carpark_system.csv', encoding="utf-8-sig", index=False)
     
 
@@ -484,15 +649,17 @@ updated_carpark_system_df.to_csv('./data/carpark_system.csv', encoding="utf-8-si
 
 
 ```python
+# Inspect the first few lines of data in DataFrame
 updated_carpark_system_df
 ```
+<br>
 
-# 2.3 Insert, Select, Delete data in postgresql
-
+# 2.3 Insert, Select, and Delete data in PostgreSQL
+On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, create data diretory in airflow dags folder and insert the data into relational database PostgreSQL. Copy and paste the codes into the cell and execute. 
 
 ```python
 # create data directory in airflow dags folder
-!mkdir ./dev_airflow/dags/data
+!mkdir -p ./dev_airflow/dags/data
 # check you are in the correct working directory
 !pwd
 ```
@@ -561,20 +728,44 @@ cur.executemany(query,data_for_db)
 conn.commit()
 
 ```
+```python
+# Check data in table CarPark
+query = 'SELECT count(*) FROM public."CarPark"'
+cur.execute(query)
 
+# iterate through all the records
+for record in cur:
+    print(record)
+
+conn.commit()
+```
+<br>
 
 
 # 2.4 Generate car entry and exit every 5 minutes
 
-1. Download the <a href="./generateCars_insertPostgresql.py">generateCars_insertPostgresql.py</a> and <a href="./readPostgressql_writeElasticsearch.py">readPostgressql_writeElasticsearch.py</a>. Edit the passwords and copy the files inside ~/dev_airflow/dags/ using the command:
+1. On the local machine, download the <a href="./generateCars_insertPostgresql.py">generateCars_insertPostgresql.py</a> and <a href="./readPostgressql_writeElasticsearch.py">readPostgressql_writeElasticsearch.py</a>. Edit the <ec2_ip_address>, airflow password, elasticsearch password using Visual Studio Code and copy the files to EC2 instance ~/dev_airflow/dags/ using the command:
 
+    ```bash
+    scp -i MyKeyPair.pem *.py ec2-user@<ip_address>:~/dev_airflow/dags/
     ```
-    $ scp -i MyKeyPair.pem *.py ec2-user@<ip_address>:~/dev_airflow/dags/
+
+    On the EC2 instance terminal, start docker, start airflow and elasticsearch containers.
+    ```bash
+    ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
+    # start docker service
+    sudo service docker start
+    # check started containers
+    docker ps -a
+    # start elasticsearch
+    docker start dev_es01
     ```
 
-2. In your browser, go to <a href="http://<ip_address>:8080">http://<ip_address>:8080</a>. Login user: airflow, password: *******.
+2. On the browser in airflow, go to <a href="http://<ip_address>:8080">http://<ip_address>:8080</a>. Login user: airflow, password: *******.
 
-3. In the DAGS tab, search for carpark. Choose the ```carpark_system_readfrompostgresql_toelasticsearch_DBdag``` dag. Choose ```carpark_system_generate_cars_DBdag``` dag to generate cars every 5 minutes.
+3. On the browser in airflow, in the DAGS tab search for carpark.
+- Activate the `carpark_system_readfrompostgresql_toelasticsearch_DBdag` dag and trigger to run every 5 minutes.
+- Activate the `carpark_system_generate_cars_DBdag` dag to generate cars every 5 minutes.
 
     <img src="image/week8_image16_1.png" width="50%">
     
@@ -582,23 +773,39 @@ conn.commit()
 
     <img src="image/week8_image16_2.png" width="50%">
 
-4. Select ```Options``` dropdown box and set ```Number of Dag Runs``` to 5 runs. Activate the Dag, click on the icon next to the dags' name. You should see the 5 runs and tasks in dark green. Click on the graph and task then view the logs in the Logs.
+4. On the browser in airflow, select `Options` dropdown box and set `Number of Dag Runs` to 5 runs. Activate the Dag, click on the icon next to the dags' name. You should see the 5 runs and tasks in dark green. Click on the graph and task then view the logs in the Logs.
 
     <img src="image/week8_image17.png" width="50%">
 
-5. If the readPostgressql_writeElasticsearch.py and generateCars_insertPostgresql.py dag is successful you should see the index in kibana <a href="http://localhost:5601/">http://localhost:5601/</a>. Search for Index Management and you will see the index below. \
-\
-If InsertDataElasticSearch failed, ensure elasticsearch and kibana is started. If elasticsearch keeps restarting, ```sudo sysctl -w vm.max_map_count=262144``` or permanently set in server ```/etc/sysctl.conf``` and enter ```vm.max_map_count=262144```. If it is still not showing, ensure elasticsearch is up.
+5. If the readPostgressql_writeElasticsearch.py and generateCars_insertPostgresql.py dag is successful you should see the index in kibana <a href="http://localhost:5601/">http://localhost:5601/</a>. On the browser in kibana, search for Index Management and you will see the index below. 
+
+    ```bash
+    # On EC2 instance terminal, ensure kibana is started
+    docker start dev_kib01
+    ```
+    \
+    If InsertDataElasticSearch failed, ensure elasticsearch and kibana is started. If elasticsearch keeps restarting, 
+    ```bash
+    sudo sysctl -w vm.max_map_count=262144
+    ``` 
+    or 
+    permanently set in server 
+    ```bash
+    vi /etc/sysctl.conf
+    vm.max_map_count=262144
+    ``` 
+
+    If it is still not showing, ensure elasticsearch is up and running.
 
     <img src="image/week8_image18.png" width="80%">
 
-6. In ariflow, remember to switch off the batch processes by deactivating the dags.
+6. In the browser accessing ariflow, remember to switch off the batch processes by deactivating the dags.
 
     <img src="image/week8_image19.png" width="80%">
 
-7. In kibana, search for Data View and create a Data View to explore your data. 
+7. In the browser accessing kibana, search for `Data View` and create a `Data View` to explore your data. Query your data with ES|QL
 
-    Name: carpark_system
+    Name: carpark_system\
     Index pattern: fromposgresql*
 
     <img src="image/week8_image20.png" width="80%">
@@ -609,10 +816,10 @@ If InsertDataElasticSearch failed, ensure elasticsearch and kibana is started. I
     <img src="image/week8_image25.png" width="80%">
     
 
-8. In kibana, search for Dashboard. Create your own dashboard to visualise and answer the questions below.
+8. In the browser accessing kibana, search for Dashboard. Create your own dashboard to visualise and answer the questions below.
 
     - What is the top 5 average parking charges for each carpark location? \
-    Screen capture your dashboard output and submit in the notebook. i.e. ```<img src="image/week8_image26.png" width="80%">```
+    Screen capture your dashboard output and submit in the notebook. i.e. ```<img src="image/week8_image25.png" width="80%">```
 
     <!-- <img src="image/week8_image26.png" width="80%"> -->
     <!-- <img src="image/week8_image27.png" width="80%"> -->
@@ -620,25 +827,25 @@ If InsertDataElasticSearch failed, ensure elasticsearch and kibana is started. I
 
 # Conclusion
 
-In this lab, you have created the development environment on AWS EC2 instance's docker. This is to fully test the systems before pushing to a User Acceptance Test (UAT) environement and a live production server. We will not cover UAT and production environment in this course.  
+In this lab, you created the development environment on an AWS EC2 instance using Docker. This setup lets you test the system before moving to a User Acceptance Testing (UAT) environment or production. UAT and production environments are not covered in this course.
 
-1. You have successfully created a data pipeline batch process to generate cars data and inserted data into a relational database (posgresql).
+1. You successfully created a batch data pipeline that generates carpark data and inserts it into a relational database (PostgreSQL).
+2. You successfully created a batch data pipeline that reads from the relational database and inserts the data into a NoSQL database (Elasticsearch).
 
-2. You have successfully created a data pipeline batch process to read from the relational database and inserted the data into a NoSQL database (elasticsearch).
+**Questions to ponder**
 
-<b>Questions to ponder</b>
-1. When do you need to use batch process?
-2. Give an example of an application that require batch processing?
-3. What are the advantages of Airflow batch processing compared to Microsoft Power Apps (MS Excel, MS Sharepoint, MS Power BI)?
+1. When do you need to use batch processing?
+2. Give an example of an application that requires batch processing.
+3. What are the advantages of Airflow batch processing compared to Microsoft Power Apps (Excel, SharePoint, Power BI)?
 4. What are the disadvantages?
-5. What level of data maturity in an organisation is more suitable for this application?
+5. What level of data maturity in an organization is most suitable for this application?
+<br>
 
-# Submissions next Wed 9pm (15 Oct 2025)  
+# Submissions next Wed 9pm (15 Oct)
 
-Submit your ipynb as a pdf. Save your ipynb as a html file, open in browser and print as a pdf. Include in your submission:
+Submit your notebook as a PDF. Save your notebook as HTML, open it in a browser, and print it to PDF. Include in your submission:
 
-    For Section 2.4 Point 8. Screen capture the dashboard to answer the question and place your dashboard screencapture in the same ipynb.
-
-    Answers the questions to ponder
+- A screen capture of the dashboard for Section 2.4 Step 8.
+- Answers to the questions to ponder.
 
 ~ The End ~
