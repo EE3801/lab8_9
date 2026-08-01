@@ -64,28 +64,29 @@ Ensure your AWS region is set to `ap-southeast-1`, and send your AWS account ID 
 
 3. Verify your installation and ensure you can access Apache Airflow, PostgreSQL, pgAdmin, Elasticsearch, and Kibana.
 
-    - On the EC3 instance, start docker and verify your installation. 
-        ```bash
-        # start a terminal and navigate to project directory
-        cd ~/Documents/projects/ee3801
-        # ssh into EC2 instance
-        ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
-        # start docker service
-        sudo service docker start
-        # list all the containers
-        docker ps -a
+4. On the EC3 instance, start docker and verify your installation. 
+    ```bash
+    # start a terminal and navigate to project directory
+    cd ~/Documents/projects/ee3801
+    # ssh into EC2 instance
+    ssh -i "MyKeyPair.pem" ec2-user@<ip_address>
+    # start docker service
+    sudo service docker start
+    # list all the containers
+    docker ps -a
 
-        ```
-    - Verify if airflow is accessible. In a browser, open Airflow at http://<ip_address>:8080.
+    ```
 
-        Login user: airflow
-        Password: *******
+5. Verify if airflow is accessible. In a browser, open Airflow at http://<ip_address>:8080.
 
-        Note: If you cannot access Airflow, verify the EC2 public IP address.
+    Login user: airflow
+    Password: *******
 
-    - Verify if pgadmin4 is accessible. On the EC2 instance, start pgadmin4. In a browser, go to http://<ip_address>. Navigate to Carpark table that is already created for you.
+    Note: If you cannot access Airflow, verify the EC2 public IP address.
 
-        Open properties of server and paste the correct <ip_address> of your EC2 instance:
+6. Verify if pgadmin4 is accessible. On the EC2 instance, start pgadmin4. In a browser, go to http://<ip_address>. Navigate to Carpark table that is already created for you.
+
+    - Open properties of server and paste the correct <ip_address> of your EC2 instance:
 
         - Name: `dev_airflow-postgres-1`
         - Host: `<ip_address>`
@@ -93,10 +94,10 @@ Ensure your AWS region is set to `ap-southeast-1`, and send your AWS account ID 
         - Username: `airflow`
         - Password: `*******`
 
-        <img src="image/week8_image6.png" width="50%">
-        <img src="image/week8_image7.png" width="50%">
+    <img src="image/week8_image6.png" width="50%">
+    <img src="image/week8_image7.png" width="50%">
 
-        In pgAdmin, view the `CarPark` table.
+    - In pgAdmin, view the `CarPark` table.
 
         Database > carpark_system > Schemas > public > Tables > CarPark.
 
@@ -109,43 +110,45 @@ Ensure your AWS region is set to `ap-southeast-1`, and send your AWS account ID 
             - Parking_Charges, numeric
 
         Note: If the connection fails, verify the EC2 public IP address and port 80 and 443 MyIP is chosen.
+    - Right click on CarPark > Script > Select and execute the script. The table has no records to begin with.
 
-        <img src="image/week8_image9.png" width="50%">
-        <img src="image/week8_image10.png" width="50%">
-        <img src="image/week8_image11.png" width="20%">
+    <img src="image/week8_image9.png" width="50%">
+    <img src="image/week8_image10.png" width="50%">
+    <img src="image/week8_image11.png" width="20%">
 
-    - Verify if elasticsearch and kibana is accessible.
+7. Verify if elasticsearch and kibana is accessible.
 
-        - On the EC2 instance, start the Elasticsearch container `dev_es01`
-            ```bash
-            docker stop $(docker ps -q)
-            # start elasticsearch
-            docker start dev_es01
-            ```
-        - On the EC2 instance, copy the CA certificate and test the connection using curl. Replace `<elastic_password>` with the password you copied in step 5.
+    - On the EC2 instance, start the Elasticsearch container `dev_es01`.
+        ```bash
+        # stop all containers
+        docker stop $(docker ps -q)
+        # start elasticsearch
+        docker start dev_es01
+        ```
+    - On the EC2 instance, copy the CA certificate and test the connection using curl. Replace `<elastic_password>` with the password you copied in step 5.
 
-            ```bash
-            cd ~/elasticsearch
+        ```bash
+        cd ~/elasticsearch
 
-            docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
-            # test the connection
-            curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200
-            ```
+        docker cp dev_es01:/usr/share/elasticsearch/config/certs/http_ca.crt .
+        # test the connection
+        curl --cacert http_ca.crt -u elastic:<elastic_password> https://localhost:9200
+        ```
 
-            <img src="image/week8_image12.png" width="50%">
+        <img src="image/week8_image12.png" width="50%">
 
-        - On the EC2 instance, run the Kibana container.
+    - On the EC2 instance, run the Kibana container.
 
-            ```bash
-            docker start dev_kib01
-            ```
+        ```bash
+        docker start dev_kib01
+        ```
 
-        - In a browser, go to `https://<ip_address>:5601/?code=xxxxxx`.
+    - In a browser, go to `https://<ip_address>:5601/?code=xxxxxx`.
 
-            Copy the emrollment token and paste it into Kibana in your browser.
-            Log in with username `elastic` and the password you saved earlier.
+        Copy the emrollment token and paste it into Kibana in your browser.
+        Log in with username `elastic` and the password you saved earlier.
 
-            <img src="image/week8_image14.png" width="50%">
+        <img src="image/week8_image14.png" width="50%">
 
 
 # 1.1 Install Docker and configure AWS EC2 (optional)
