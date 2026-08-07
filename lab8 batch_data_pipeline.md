@@ -27,7 +27,7 @@ Follow one of these options:
 - <a href="./lab8 optional.md">Optional</a> Sections 1.1 to 1.4: install the software manually for Lab 8. You do not need to go through this section. It guides you through how to install the softwares in AWS EC2 instance.
 
 Notes:
-- Ensure EE3801 `Lab 1 Part A Part 1-4` and `Lab 7` is completed before proceeding with the steps below. 
+- Ensure EE3801 `Lab 1 Part A Part 1-2` and `Lab 7` is completed before proceeding with the steps below. 
 - Ensure your AWS region is set to `ap-southeast-1`, and send your AWS account ID to the instructor for access.
 
 # 1.0 Import Amazon Machine Images (AMIs) into your EC2 instance
@@ -54,6 +54,8 @@ Notes:
 2. In the AWS Console, open EC2 > Instances > Security > Security groups url e.g. sg-xxxxxx > Edit inbound rules and add the following rules:
 
     - Type: SSH, Port range: 22, Source: Custom, `0.0.0.0/0`
+    - Type: HTTPS, Port range: 443, Source: Custom, My IP
+    - Type: HTTP, Port range: 80, Source: Custom, My IP
     - Type: Custom TCP, Port range: 5601, Source: Custom, `0.0.0.0/0`
     - Type: Custom TCP, Port range: 8080, Source: Custom, `0.0.0.0/0`
     - Type: Custom TCP, Port range: 5432, Source: Custom, `0.0.0.0/0`
@@ -61,12 +63,10 @@ Notes:
     - Type: Custom TCP, Port range: 39092, Source: Custom, `0.0.0.0/0`
     - Type: Custom TCP, Port range: 49092, Source: Custom, `0.0.0.0/0`
     - Type: Custom TCP, Port range: 9200, Source: Custom, `0.0.0.0/0`
-    - Type: HTTPS, Port range: 443, Source: Custom, My IP
-    - Type: HTTPS, Port range: 80, Source: Custom, My IP
-
+    
 3. In the next steps, verify your installation and ensure you can access Apache Airflow, PostgreSQL, pgAdmin, Elasticsearch, and Kibana.
 
-4. On the EC3 instance, start docker and verify your installation. 
+4. On the EC2 instance, start docker and verify your installation. 
     ```bash
     # start a terminal and navigate to project directory
     cd ~/Documents/projects/ee3801
@@ -94,9 +94,8 @@ Notes:
         ```
 
     - In a browser, go to http://<ip_address>.
-    - Navigate to Carpark table that is already created for you.
 
-    - Right click, choose `Properties` of database server and paste the correct <ip_address> of your EC2 instance (required whenever restart EC2 instance):
+    - In pgAdmin, `Cancel` and right click, choose `Properties` of database server and paste the correct <ip_address> of your EC2 instance (required whenever restart EC2 instance):
 
         - Name: `dev_airflow-postgres-1`
         - Host: `<ip_address>`
@@ -107,6 +106,7 @@ Notes:
         <img src="image/week8_image6.png" width="50%">
         <img src="image/week8_image7.png" width="50%">
 
+    - In pgAdmin, right click and `Connect Server`.
     - In pgAdmin, view the `CarPark` table.
 
         Database > carpark_system > Schemas > public > Tables > CarPark.
@@ -119,7 +119,7 @@ Notes:
             - Exit_DateTime, timestamp without time zone
             - Parking_Charges, numeric
 
-        Note: If the connection fails, verify the EC2 public IP address and port 80 and 443 MyIP is chosen.
+        Note: If the connection fails, verify the EC2 instance public IP address and security inbound rules port 80 and 443 `MyIP` is chosen.
     - Right click on CarPark > Script > Select and execute the script. The table has no records to begin with.
 
         <img src="image/week8_image9.png" width="50%">
@@ -180,7 +180,7 @@ On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, install pyt
 ```python
 # install python packages
 
-# For MacOS users
+# For MacOS or Linux/WSL2 users
 # to upgrade pip
 !python -m pip install --upgrade pip  
 # to install package and dependencies         
@@ -223,7 +223,7 @@ On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, generate mo
 
 ```python
 # Ensure you are in the correct working directory, `home_directory+'/Documents/projects/ee3801'`
-# for MacOS users
+# for MacOS or Linux/WSL2 users
 !pwd
 # for Windows users
 %pwd
@@ -361,7 +361,7 @@ updated_carpark_system_df
 On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, create data diretory in airflow dags folder and insert the data into relational database PostgreSQL. Copy and paste the codes into the cell and execute. 
 
 ```python
-# For MacOS users
+# For MacOS or Linux/WSL2 users
 # create data directory in airflow dags folder
 !mkdir -p ./dev_airflow/dags/data
 # check you are in the correct working directory
@@ -460,7 +460,10 @@ conn.commit()
 
     - On the local machine, copy the two python files into directory `./dev_airflow/dags`
         ```bash
+        # for MacOS and Windows 
         cp ~/Downloads/*.py ~/Documents/projects/ee3801/dev_airflow/dags
+        # for Linux/WSL2 
+        cp /mnt/c/Users/<username>/Downloads/*.py ~/Documents/projects/ee3801/dev_airflow/dags
         ```
 
     - On the local machine Visual Studio Code, edit the <ec2_ip_address>, airflow password, elasticsearch password and save the file.
@@ -475,7 +478,7 @@ conn.commit()
         ```bash
         ssh -i ~/MyKeyPair.pem ec2-user@<ip_address>
         # start docker service
-        sudo service docker start
+        sudo service docker restart
         # check started containers
         docker ps -a
         # start ariflow
@@ -486,7 +489,7 @@ conn.commit()
 
 2. On the browser in airflow, go to <a href="http://<ip_address>:8080">http://<ip_address>:8080</a>. Login user: airflow, password: *******.
 
-3. On the browser in airflow, in the DAGS tab search for carpark.
+3. On the browser in airflow, in the `DAGS` tab search for `carpark`.
     - Activate the `carpark_system_readfrompostgresql_toelasticsearch_DBdag` dag and trigger to run every 5 minutes.
     - Activate the `carpark_system_generate_cars_DBdag` dag to generate cars every 5 minutes.
 
@@ -526,10 +529,7 @@ conn.commit()
 
     <img src="image/week8_image19.png" width="80%">
 
-7. In the browser accessing kibana http://<ip_address>:5601, search for `Data View` and create a `Data View` to explore your data. Query your data with ES|QL
-
-    Name: carpark_system\
-    Index pattern: frompostgresql*
+7. In the browser accessing kibana http://<ip_address>:5601, search for `Data View` and explore the data. 
 
     <img src="image/week8_image20.png" width="80%">
     <img src="image/week8_image21.png" width="80%">
@@ -539,7 +539,10 @@ conn.commit()
     <img src="image/week8_image25.png" width="80%">
     
 
-8. In the browser accessing kibana, search for Dashboard. Create your own dashboard to visualise and answer the questions below.
+8. In the browser accessing kibana, search for Dashboard. Create data view, dashboard to visualise and answer the questions below.
+
+    Name: carpark_system\
+    Index pattern: frompostgresql*
 
     - What is the average parking charges for each carpark location? \
     Screen capture your dashboard output and submit in the notebook. i.e. ```<img src="image/week8_image25.png" width="80%">```
