@@ -361,7 +361,7 @@ updated_carpark_system_df
 On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, create data diretory in airflow dags folder and insert the data into relational database PostgreSQL. Copy and paste the codes into the cell and execute. 
 
 ```python
-# For MacOS or Linux/WSL2 users
+# For MacOS 
 # create data directory in airflow dags folder
 !mkdir -p ./dev_airflow/dags/data
 # check you are in the correct working directory
