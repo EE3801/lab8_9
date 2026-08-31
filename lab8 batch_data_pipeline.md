@@ -51,7 +51,7 @@ Notes:
 
     `Launch instance`
 
-2. In the AWS Console, open EC2 > Instances > Security > Security groups url e.g. sg-xxxxxx > Edit inbound rules and add the following rules:
+2. In the AWS Console, open EC2 > Instances > Security > Security groups url e.g. sg-xxxxxx > Check, edit inbound rules and add the following rules:
 
     - Type: SSH, Port range: 22, Source: Custom, `0.0.0.0/0`
     - Type: HTTPS, Port range: 443, Source: Custom, My IP
@@ -180,7 +180,7 @@ On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, install pyt
 ```python
 # install python packages
 
-# For MacOS or Linux/WSL2 users
+# For MacOS
 # to upgrade pip
 !python -m pip install --upgrade pip  
 # to install package and dependencies         
@@ -189,7 +189,7 @@ On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, install pyt
 ```
 
 ```python
-# For Windows users
+# For Windows
 # to upgrade pip
 %python -m pip install --upgrade pip  
 # to install package and dependencies         
@@ -223,9 +223,9 @@ On the local machine Visual Studio Code `batch_data_pipeline.ipynb`, generate mo
 
 ```python
 # Ensure you are in the correct working directory, `home_directory+'/Documents/projects/ee3801'`
-# for MacOS or Linux/WSL2 users
+# for MacOS
 !pwd
-# for Windows users
+# for Windows
 %pwd
 ```
 
@@ -462,8 +462,6 @@ conn.commit()
         ```bash
         # for MacOS and Windows 
         cp ~/Downloads/*.py ~/Documents/projects/ee3801/dev_airflow/dags
-        # for Linux/WSL2 
-        cp /mnt/c/Users/<username>/Downloads/*.py ~/Documents/projects/ee3801/dev_airflow/dags
         ```
 
     - On the local machine Visual Studio Code, edit the <ec2_ip_address>, airflow password, elasticsearch password and save the file.
@@ -567,7 +565,7 @@ In this lab, you created the development environment on an AWS EC2 instance usin
 5. What level of data maturity in an organization is most suitable for this application?
 <br>
 
-# Submissions next Wed 9pm (15 Oct)
+# Submissions next Wed 9pm (14 Oct)
 
 Submit your notebook as a PDF. Save your notebook as HTML, open it in a browser, and print it to PDF. Include in your submission:
 
